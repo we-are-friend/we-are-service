@@ -12,6 +12,12 @@ export class User {
   @Column()
   password: string;
 
+  @Column({ default: '' })
+  refreshtoken: string;
+
+  @Column({ default: '' })
+  refreshtokenexpires: string;
+
   @OneToMany((_type) => Task, (task) => task.user, { eager: true })
   tasks: Task[];
 }

@@ -21,7 +21,7 @@ import { TasksService } from './tasks.service';
 import { Logger } from '@nestjs/common';
 
 @Controller('tasks')
-@UseGuards(AuthGuard())
+@UseGuards(AuthGuard('jwt-refreshtoken'))
 export class TasksController {
   private logger = new Logger('TasksController');
   // tasksService: TasksService;

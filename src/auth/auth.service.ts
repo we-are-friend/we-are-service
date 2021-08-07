@@ -5,6 +5,7 @@ import { UsersRepository } from './users.repository';
 import * as bcrypt from 'bcrypt';
 import { JwtService } from '@nestjs/jwt';
 import { JwtPayload } from './jwt-payload.interface';
+import { User } from './user.entity';
 
 @Injectable()
 export class AuthService {
@@ -20,16 +21,42 @@ export class AuthService {
 
   async signIn(
     authCredentialsDto: AuthCredentialsDto,
-  ): Promise<{ accessToken: string }> {
+  ): Promise<{ accessToken: string; refreshToken: string }> {
     const { username, password } = authCredentialsDto;
     const user = await this.usersRepository.findOne({ username });
 
     if (user && (await bcrypt.compare(password, user.password))) {
       const payload: JwtPayload = { username };
       const accessToken: string = await this.jwtService.sign(payload);
-      return { accessToken };
+      const refreshToken: string = await this.generateRefreshToken(
+        payload,
+        user.id,
+      );
+      return { accessToken, refreshToken };
     } else {
       throw new UnauthorizedException('Please check your login credentials');
     }
+  }
+
+  async tokenSignIn(
+    user: User,
+  ): Promise<{ accessToken: string; refreshToken: string }> {
+    const payload = { username: user.username };
+    return {
+      accessToken: await this.jwtService.sign(payload),
+      refreshToken: await this.generateRefreshToken(payload, user.id),
+    };
+  }
+
+  async generateRefreshToken(payload, userId: string): Promise<string> {
+    const refreshToken = await this.jwtService.sign(payload);
+    const expirydate = new Date();
+    expirydate.setDate(expirydate.getDate() + 6);
+    await this.usersRepository.saveOrUpdateRefreshToken(
+      refreshToken,
+      userId,
+      expirydate,
+    );
+    return refreshToken;
   }
 }
